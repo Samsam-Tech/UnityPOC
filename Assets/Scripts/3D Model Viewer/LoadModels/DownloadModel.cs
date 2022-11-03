@@ -17,12 +17,11 @@ public class DownloadModel : MonoBehaviour
     void Start()
     {
         modelLoader = gameObject.GetComponent<ModelLoader>();
-        url = "https://drive.google.com/drive/folders/1O1uyJFHFS6_z0gng1JkkM7ZW7XS1IwHl";
-        sourcePath = $"{Application.persistentDataPath}/Models/";
-        string savePath = string.Format("{0}/{1}.zip", Application.persistentDataPath, "TestSave");
+        url = "https://drive.google.com/drive/folders/1O1uyJFHFS6_z0gng1JkkM7ZW7XS1IwHl"; //change url
+        sourcePath = System.IO.Path.Combine(Application.persistentDataPath, "Assets");
+
         DownloadFile(url);
     }
-
 
     IEnumerator GetFileRequest(string url)
     {
@@ -50,25 +49,27 @@ public class DownloadModel : MonoBehaviour
                 case UnityWebRequest.Result.Success:
 
                     Debug.Log(pages[page] + ":\nReceived: " + webRequest.downloadHandler);
-                    extractFilePath = $"{sourcePath}/{fileName}";
-                    // ExtractFile(savePath, extractFilePath);
 
-                    ExtractFile($"{Application.persistentDataPath}/Models/BlackSofa.zip", $"{Application.persistentDataPath}/Models/BlackSofa");
-                    FindModelOBJ($"{Application.persistentDataPath}/Models/BlackSofa");
-                    // LoadModel(path);
+                    extractFilePath = $"{sourcePath}/{fileName}";
+
+                    ExtractFile(savePath, extractFilePath);
+                    // ExtractFile($"{Application.persistentDataPath}/Assets/BlackSofa.zip", $"{Application.persistentDataPath}/Models/BlackSofa");
+
+                    FindModelOBJ(extractFilePath, fileName);
+                    // FindModelOBJ($"{Application.persistentDataPath}/Assets/BlackSofa");
+
                     break;
             }
         }
     }
 
-    public void FindModelOBJ(string targetDirectory)
+    public void FindModelOBJ(string targetDirectory, string fileName)
     {
         // Process the list of files found in the directory.
         string[] models = Directory.GetFiles(targetDirectory, "*.obj");
         string[] modelTextures = Directory.GetFiles(targetDirectory, "*.png");
-        Debug.Log(models[0]);
-        Debug.Log(modelTextures[0]);
-        modelLoader.LoadModel(models[0], modelTextures[0],targetDirectory, fileName);
+
+        modelLoader.LoadModel(models[0], modelTextures[0], targetDirectory, fileName);
         Destroy(this.gameObject);
     }
 
@@ -76,13 +77,12 @@ public class DownloadModel : MonoBehaviour
     {
         string path = GetFilePath(url);
 
-        if (File.Exists($"{Application.persistentDataPath}/Models/BlackSofa.zip"))
+        if (File.Exists(path))
+        // if (File.Exists($"{Application.persistentDataPath}/Assets/BlackSofa.zip"))
         {
-            Debug.Log("Found file locally, loading...");
-            // ExtractFile($"{Application.persistentDataPath}/Models/BlackSofa.zip", $"{Application.persistentDataPath}/Models/BlackSofa");
-            FindModelOBJ($"{Application.persistentDataPath}/Models/BlackSofa");
-            // 
-            // LoadModel(path);
+            FindModelOBJ(path,fileName); //get obj and texture
+            // FindModelOBJ($"{Application.persistentDataPath}/Assets/BlackSofa", fileName);
+
             return;
         }
         StartCoroutine(GetFileRequest(url));
@@ -93,8 +93,7 @@ public class DownloadModel : MonoBehaviour
     {
         string[] pieces = url.Split('/');
         fileName = pieces[pieces.Length - 1];
-
-        savePath = string.Format("{0}/{1}.zip", sourcePath, fileName);
+        string savePath = System.IO.Path.Combine(sourcePath, $"{fileName}.zip");
 
         return savePath;
     }
@@ -102,6 +101,17 @@ public class DownloadModel : MonoBehaviour
     public void ExtractFile(string sourcepZipFile, string extractPath)
     {
         ZipFile.ExtractToDirectory(sourcepZipFile, extractPath);
+
+        //Move zip file inside
+        try
+        {
+            File.Move(extractPath, sourcepZipFile);
+            Debug.Log("Moved");
+        }
+        catch (IOException ex)
+        {
+            Debug.Log(ex);
+        }
     }
 
 }
